@@ -2,6 +2,7 @@ use default_config::DefaultConfigPlugins;
 use ship::ShipPlugin;
 
 mod default_config;
+mod prelude;
 mod ship;
 
 fn main() {
