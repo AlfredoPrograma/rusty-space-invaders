@@ -9,7 +9,8 @@ impl Plugin for DefaultConfigPlugins {
     fn build(&self, app: &mut bevy::prelude::App) {
         let window_plugin = create_window_plugin();
 
-        app.add_plugins(DefaultPlugins.set(window_plugin));
+        app.add_plugins(DefaultPlugins.set(window_plugin))
+            .add_systems(Startup, create_camera_system);
     }
 }
 
@@ -29,4 +30,12 @@ fn create_window_plugin() -> WindowPlugin {
         primary_window: Some(window_config),
         ..Default::default()
     }
+}
+
+fn create_camera_system(mut commands: Commands) {
+    let camera = Camera2dBundle {
+        ..Default::default()
+    };
+
+    commands.spawn(camera);
 }
