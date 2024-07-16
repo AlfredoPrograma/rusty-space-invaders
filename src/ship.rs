@@ -2,7 +2,10 @@ use bevy::app::Plugin;
 use bevy::math::vec3;
 use bevy::prelude::*;
 
-use crate::prelude::{XSpeed, YSpeed};
+use crate::{
+    default_config::{WINDOW_X_LIMIT, WINDOW_Y_SIZE},
+    prelude::{XSpeed, YSpeed},
+};
 
 pub struct ShipPlugin;
 
@@ -32,6 +35,7 @@ struct ShipBundle {
 
 const SHIP_SPEED: f32 = 5.0;
 const SHIP_SCALE: f32 = 0.75;
+const SHIP_POSITION: f32 = -(WINDOW_Y_SIZE / 2.0) + 75.0;
 
 impl ShipBundle {
     pub fn new(texture: Handle<Image>) -> Self {
@@ -42,7 +46,7 @@ impl ShipBundle {
                 texture,
                 transform: Transform {
                     scale: vec3(SHIP_SCALE, SHIP_SCALE, 0.0),
-                    translation: vec3(0.0, 0.0, 0.0),
+                    translation: vec3(0.0, SHIP_POSITION, 0.0),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -65,8 +69,21 @@ fn ship_movement_system(
 
     for key_code in key.get_pressed() {
         match key_code {
-            KeyCode::ArrowLeft => transform.translation.x -= speed.0,
-            KeyCode::ArrowRight => transform.translation.x += speed.0,
+            KeyCode::ArrowLeft => {
+                let new_position = transform.translation.x - speed.0;
+
+                if !(new_position < -WINDOW_X_LIMIT) {
+                    transform.translation.x = new_position
+                }
+            }
+            KeyCode::ArrowRight => {
+                let new_position = transform.translation.x + speed.0;
+
+                if !(new_position > WINDOW_X_LIMIT) {
+                    transform.translation.x = new_position
+                }
+            }
+
             // Do nothing xd
             _ => {}
         }

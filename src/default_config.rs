@@ -3,6 +3,9 @@ use bevy::{app::Plugin, prelude::*, window, DefaultPlugins};
 pub const WINDOW_X_SIZE: f32 = 500.0;
 pub const WINDOW_Y_SIZE: f32 = 900.0;
 
+const WINDOW_X_PADDING: f32 = 60.0;
+pub const WINDOW_X_LIMIT: f32 = (WINDOW_X_SIZE / 2.0) - WINDOW_X_PADDING;
+
 pub struct DefaultConfigPlugins;
 
 impl Plugin for DefaultConfigPlugins {
