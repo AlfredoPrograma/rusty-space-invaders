@@ -2,14 +2,18 @@ use bevy::app::Plugin;
 use bevy::math::vec3;
 use bevy::prelude::*;
 
-use crate::prelude::XSpeed;
+use crate::prelude::{XSpeed, YSpeed};
 
 pub struct ShipPlugin;
 
 impl Plugin for ShipPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Startup, spawn_ship_system)
-            .add_systems(Update, ship_movement_system);
+        app.insert_resource(ShootingTimer(Timer::from_seconds(
+            1.0,
+            TimerMode::Repeating,
+        )))
+        .add_systems(Startup, spawn_ship_system)
+        .add_systems(Update, (ship_movement_system, spawn_shot_system));
     }
 }
 
@@ -63,5 +67,59 @@ fn ship_movement_system(
             // Do nothing xd
             _ => {}
         }
+    }
+}
+
+const SHOT_SPEED: f32 = 10.0;
+
+#[derive(Resource)]
+struct ShootingTimer(Timer);
+
+#[derive(Component)]
+struct Shot;
+
+#[derive(Bundle)]
+struct ShotBundle {
+    speed: YSpeed,
+    sprite: SpriteBundle,
+    shot: Shot,
+}
+
+impl ShotBundle {
+    pub fn new(shot_offset: (f32, f32), texture: Handle<Image>) -> Self {
+        let (x_offset, y_offset) = shot_offset;
+
+        Self {
+            shot: Shot,
+            speed: YSpeed(SHOT_SPEED),
+            sprite: SpriteBundle {
+                texture,
+                transform: Transform {
+                    translation: vec3(x_offset, y_offset, 0.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        }
+    }
+}
+
+fn spawn_shot_system(
+    mut shooting_timer: ResMut<ShootingTimer>,
+    mut commands: Commands,
+    query: Query<&Transform, With<Ship>>,
+    asset_server: Res<AssetServer>,
+    time: Res<Time>,
+) {
+    let shot_texture: Handle<Image> = asset_server.load("laser_base.png");
+    let transform = query.get_single().unwrap();
+    let (x_offset, y_offset) = (
+        transform.translation.x + 35.0,
+        transform.translation.y + 35.0,
+    );
+
+    if shooting_timer.0.tick(time.delta()).just_finished() {
+        commands.spawn(ShotBundle::new((-x_offset, y_offset), shot_texture.clone()));
+        commands.spawn(ShotBundle::new((x_offset, y_offset), shot_texture));
     }
 }
