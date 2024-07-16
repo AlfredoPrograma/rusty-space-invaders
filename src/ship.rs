@@ -9,11 +9,14 @@ pub struct ShipPlugin;
 impl Plugin for ShipPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.insert_resource(ShootingTimer(Timer::from_seconds(
-            1.0,
+            SHOOTING_INTERVAL,
             TimerMode::Repeating,
         )))
         .add_systems(Startup, spawn_ship_system)
-        .add_systems(Update, (ship_movement_system, spawn_shot_system));
+        .add_systems(
+            Update,
+            (ship_movement_system, spawn_shot_system, shot_moving_system),
+        );
     }
 }
 
@@ -71,6 +74,8 @@ fn ship_movement_system(
 }
 
 const SHOT_SPEED: f32 = 10.0;
+const SHOOTING_INTERVAL: f32 = 0.5;
+const SHOT_SPAWN_OFFSET: f32 = 35.0;
 
 #[derive(Resource)]
 struct ShootingTimer(Timer);
@@ -112,14 +117,28 @@ fn spawn_shot_system(
     time: Res<Time>,
 ) {
     let shot_texture: Handle<Image> = asset_server.load("laser_base.png");
-    let transform = query.get_single().unwrap();
-    let (x_offset, y_offset) = (
-        transform.translation.x + 35.0,
-        transform.translation.y + 35.0,
-    );
+    let ship_position = query.get_single().unwrap().translation;
 
     if shooting_timer.0.tick(time.delta()).just_finished() {
-        commands.spawn(ShotBundle::new((-x_offset, y_offset), shot_texture.clone()));
-        commands.spawn(ShotBundle::new((x_offset, y_offset), shot_texture));
+        commands.spawn(ShotBundle::new(
+            (
+                ship_position.x + SHOT_SPAWN_OFFSET,
+                ship_position.y + SHOT_SPAWN_OFFSET,
+            ),
+            shot_texture.clone(),
+        ));
+        commands.spawn(ShotBundle::new(
+            (
+                ship_position.x - SHOT_SPAWN_OFFSET,
+                ship_position.y + SHOT_SPAWN_OFFSET,
+            ),
+            shot_texture,
+        ));
+    }
+}
+
+fn shot_moving_system(mut query: Query<(&mut Transform, &YSpeed), With<Shot>>) {
+    for (mut transform, speed) in &mut query {
+        transform.translation.y += speed.0
     }
 }
