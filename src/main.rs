@@ -1,13 +1,9 @@
-use bevy::app::Plugin;
+use default_config::DefaultConfigPlugins;
 
-struct HelloPlugin;
-
-impl Plugin for HelloPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
-        println!("Hello")
-    }
-}
+mod default_config;
 
 fn main() {
-    bevy::app::App::new().add_plugins(HelloPlugin).run();
+    bevy::app::App::new()
+        .add_plugins(DefaultConfigPlugins)
+        .run();
 }
