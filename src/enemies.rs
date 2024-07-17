@@ -2,9 +2,11 @@ use bevy::{math::vec3, prelude::*};
 use rand::Rng;
 
 use crate::{
-    default_config::{WINDOW_X_LIMIT, WINDOW_Y_SIZE},
+    default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT},
     prelude::YSpeed,
 };
+
+const SPAWN_Y_OFFSET: f32 = 45.0;
 pub struct EnemiesPlugin;
 
 impl Plugin for EnemiesPlugin {
@@ -13,7 +15,7 @@ impl Plugin for EnemiesPlugin {
             ASTEROID_SPAWNER_TRIGGER_INTERVAL,
             TimerMode::Repeating,
         )))
-        .add_systems(Update, spawn_asteroids_system);
+        .add_systems(Update, (spawn_asteroids_system, asteroids_movement_system));
     }
 }
 
@@ -35,7 +37,8 @@ struct AsteroidBundle {
 }
 
 const ASTEROID_SPAWNER_TRIGGER_INTERVAL: f32 = 2.0;
-const ASTEROID_SPEED: f32 = 7.0;
+const ASTEROID_ROTATION_SPEED: f32 = 1.25;
+const ASTEROID_SPEED: f32 = 2.0;
 const ASTEROID_HEALTH: i32 = 30;
 
 impl AsteroidBundle {
@@ -67,16 +70,24 @@ fn spawn_asteroids_system(
     if asteroids_spawn_timer.0.tick(time.delta()).just_finished() {
         let should_spawn = rand::random::<bool>();
 
-        println!("Should spawn: {should_spawn}");
-
         if should_spawn {
             let asteroid_texture = asset_server.load("big_meteor_gray.png");
             let start_position = (
                 rand::thread_rng().gen_range(-WINDOW_X_LIMIT..WINDOW_X_LIMIT),
-                rand::thread_rng().gen_range(WINDOW_Y_SIZE / 2.0..(WINDOW_Y_SIZE / 2.0) + 30.0),
+                rand::thread_rng().gen_range(WINDOW_Y_LIMIT..WINDOW_Y_LIMIT + SPAWN_Y_OFFSET),
             );
 
             commands.spawn(AsteroidBundle::new(start_position, asteroid_texture));
         }
+    }
+}
+
+fn asteroids_movement_system(
+    time: Res<Time>,
+    mut query: Query<(&mut Transform, &YSpeed), With<Asteroid>>,
+) {
+    for (mut transform, speed) in &mut query {
+        transform.translation.y -= speed.0;
+        transform.rotate_z(ASTEROID_ROTATION_SPEED * time.delta_seconds());
     }
 }
