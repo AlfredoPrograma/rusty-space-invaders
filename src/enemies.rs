@@ -1,9 +1,13 @@
-use bevy::{math::vec3, prelude::*};
+use bevy::{
+    math::{bounding::Aabb2d, vec2, vec3},
+    prelude::*,
+};
 use rand::Rng;
 
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT},
     prelude::YSpeed,
+    ship::{shot_collision, Shot},
 };
 
 const SPAWN_Y_OFFSET: f32 = 45.0;
@@ -15,7 +19,15 @@ impl Plugin for EnemiesPlugin {
             ASTEROID_SPAWNER_TRIGGER_INTERVAL,
             TimerMode::Repeating,
         )))
-        .add_systems(Update, (spawn_asteroids_system, asteroids_movement_system));
+        .add_systems(
+            Update,
+            (
+                spawn_asteroids_system,
+                asteroids_movement_system,
+                take_damage,
+            )
+                .chain(),
+        );
     }
 }
 
@@ -89,5 +101,39 @@ fn asteroids_movement_system(
     for (mut transform, speed) in &mut query {
         transform.translation.y -= speed.0;
         transform.rotate_z(ASTEROID_ROTATION_SPEED * time.delta_seconds());
+    }
+}
+
+fn take_damage(
+    enemy_query: Query<(&Transform, &Handle<Image>, Entity), With<Asteroid>>,
+    shot_query: Query<(&Transform, &Handle<Image>, Entity), With<Shot>>,
+    image_assets: Res<Assets<Image>>,
+    mut commands: Commands,
+) {
+    for (enemy_pos, enemy_texture, enemy_entity) in &enemy_query {
+        for (shot_pos, shot_texture, shot_entity) in &shot_query {
+            let enemy_size = image_assets.get(enemy_texture);
+            let shot_size = image_assets.get(shot_texture);
+
+            if enemy_size.is_none() || shot_size.is_none() {
+                return;
+            }
+
+            let shot_bounding_box = Aabb2d::new(
+                shot_pos.translation.truncate(),
+                shot_size.unwrap().size_f32() / 2.0,
+            );
+            let enemy_bounding_box = Aabb2d::new(
+                enemy_pos.translation.truncate(),
+                enemy_size.unwrap().size_f32() / 2.0,
+            );
+
+            let collision = shot_collision(shot_bounding_box, enemy_bounding_box);
+
+            if collision {
+                commands.entity(enemy_entity).despawn();
+                commands.entity(shot_entity).despawn();
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
-use bevy::app::Plugin;
+use bevy::math::bounding::{Aabb2d, IntersectsVolume};
 use bevy::math::vec3;
 use bevy::prelude::*;
+use bevy::{app::Plugin, math::bounding::BoundingVolume};
 
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_SIZE},
@@ -98,7 +99,7 @@ const SHOT_SPAWN_OFFSET: f32 = 35.0;
 struct ShootingTimer(Timer);
 
 #[derive(Component)]
-struct Shot;
+pub struct Shot;
 
 #[derive(Bundle)]
 struct ShotBundle {
@@ -158,4 +159,12 @@ fn shot_moving_system(mut query: Query<(&mut Transform, &YSpeed), With<Shot>>) {
     for (mut transform, speed) in &mut query {
         transform.translation.y += speed.0
     }
+}
+
+pub fn shot_collision(shot: Aabb2d, bounding_box: Aabb2d) -> bool {
+    if !shot.intersects(&bounding_box) {
+        return false;
+    }
+
+    return true;
 }
