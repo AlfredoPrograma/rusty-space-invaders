@@ -1,12 +1,15 @@
 use bevy::{
-    math::{bounding::Aabb2d, vec2, vec3},
+    math::{
+        bounding::{Aabb2d, BoundingVolume},
+        vec2, vec3,
+    },
     prelude::*,
 };
 use rand::Rng;
 
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT},
-    prelude::YSpeed,
+    prelude::{Collider, YSpeed},
     ship::{shot_collision, Shot},
 };
 
@@ -46,12 +49,14 @@ struct AsteroidBundle {
     speed: YSpeed,
     health: Health,
     asteroid: Asteroid,
+    collider: Collider,
 }
 
 const ASTEROID_SPAWNER_TRIGGER_INTERVAL: f32 = 2.0;
 const ASTEROID_ROTATION_SPEED: f32 = 1.25;
 const ASTEROID_SPEED: f32 = 2.0;
 const ASTEROID_HEALTH: i32 = 30;
+const ASTEROID_SIZE: (f32, f32) = (101.0, 84.0); // hardcoded size because we should have the boundaries of the collider and it should not be given by the sprite
 
 impl AsteroidBundle {
     fn new(start_position: (f32, f32), texture: Handle<Image>) -> Self {
@@ -61,6 +66,10 @@ impl AsteroidBundle {
             asteroid: Asteroid,
             health: Health(ASTEROID_HEALTH),
             speed: YSpeed(ASTEROID_SPEED),
+            collider: Collider(Aabb2d::new(
+                vec2(x_start_position, y_start_position),
+                Vec2::from(ASTEROID_SIZE) / 2.0,
+            )),
             sprite: SpriteBundle {
                 texture,
                 transform: Transform {
@@ -96,39 +105,40 @@ fn spawn_asteroids_system(
 
 fn asteroids_movement_system(
     time: Res<Time>,
-    mut query: Query<(&mut Transform, &YSpeed), With<Asteroid>>,
+    mut query: Query<(&mut Transform, &mut Collider, &YSpeed), With<Asteroid>>,
 ) {
-    for (mut transform, speed) in &mut query {
+    for (mut transform, mut collider, speed) in &mut query {
+        // Move sprite
         transform.translation.y -= speed.0;
         transform.rotate_z(ASTEROID_ROTATION_SPEED * time.delta_seconds());
+
+        // Move collider
+        collider.0.translate_by(vec2(0.0, -speed.0))
     }
 }
 
 fn take_damage(
-    enemy_query: Query<(&Transform, &Handle<Image>, Entity), With<Asteroid>>,
+    enemy_query: Query<(&Transform, &Collider, Entity), With<Asteroid>>,
     shot_query: Query<(&Transform, &Handle<Image>, Entity), With<Shot>>,
     image_assets: Res<Assets<Image>>,
     mut commands: Commands,
 ) {
-    for (enemy_pos, enemy_texture, enemy_entity) in &enemy_query {
+    for (enemy_pos, enemy_collider, enemy_entity) in &enemy_query {
         for (shot_pos, shot_texture, shot_entity) in &shot_query {
-            let enemy_size = image_assets.get(enemy_texture);
             let shot_size = image_assets.get(shot_texture);
 
-            if enemy_size.is_none() || shot_size.is_none() {
+            if shot_size.is_none() {
                 return;
             }
+
+            // println!("Shot size: {:#?}", shot_size.unwrap().size_f32());
 
             let shot_bounding_box = Aabb2d::new(
                 shot_pos.translation.truncate(),
                 shot_size.unwrap().size_f32() / 2.0,
             );
-            let enemy_bounding_box = Aabb2d::new(
-                enemy_pos.translation.truncate(),
-                enemy_size.unwrap().size_f32() / 2.0,
-            );
 
-            let collision = shot_collision(shot_bounding_box, enemy_bounding_box);
+            let collision = shot_collision(shot_bounding_box, enemy_collider.0);
 
             if collision {
                 commands.entity(enemy_entity).despawn();
