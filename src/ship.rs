@@ -3,7 +3,7 @@ use bevy::math::bounding::{Aabb2d, BoundingVolume, IntersectsVolume};
 use bevy::math::{vec2, vec3};
 use bevy::prelude::*;
 
-use crate::prelude::Collider;
+use crate::prelude::{Collider, Damage};
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_SIZE},
     prelude::{XSpeed, YSpeed},
@@ -92,6 +92,7 @@ fn ship_movement_system(
     }
 }
 
+const BASE_SHOT_DAMAGE: f32 = 1.0;
 const SHOT_SPEED: f32 = 10.0;
 const SHOOTING_INTERVAL: f32 = 0.5;
 const SHOT_SPAWN_OFFSET: f32 = 35.0;
@@ -107,8 +108,9 @@ pub struct Shot;
 struct ShotBundle {
     speed: YSpeed,
     sprite: SpriteBundle,
-    shot: Shot,
     collider: Collider,
+    damage: Damage,
+    shot: Shot,
 }
 
 impl ShotBundle {
@@ -118,6 +120,7 @@ impl ShotBundle {
         Self {
             shot: Shot,
             speed: YSpeed(SHOT_SPEED),
+            damage: Damage(BASE_SHOT_DAMAGE),
             collider: Collider(Aabb2d::new(
                 vec2(x_offset, y_offset),
                 Vec2::from(SHOT_COLLIDER_SIZE) / 2.0,
@@ -172,9 +175,6 @@ fn shot_moving_system(mut query: Query<(&mut Transform, &mut Collider, &YSpeed),
 }
 
 pub fn shot_collision(shot: Aabb2d, bounding_box: Aabb2d) -> bool {
-    if !shot.intersects(&bounding_box) {
-        return false;
-    }
-
-    return true;
+    // TODO: maybe add some extra logic like particles or sound on collision later
+    shot.intersects(&bounding_box)
 }

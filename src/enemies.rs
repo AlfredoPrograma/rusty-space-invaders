@@ -9,7 +9,7 @@ use rand::Rng;
 
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT},
-    prelude::{Collider, YSpeed},
+    prelude::{Collider, Damage, Health, YSpeed},
     ship::{shot_collision, Shot},
 };
 
@@ -38,9 +38,6 @@ impl Plugin for EnemiesPlugin {
 struct AsteroidSpawnTimer(Timer);
 
 #[derive(Component)]
-struct Health(pub i32);
-
-#[derive(Component)]
 struct Asteroid;
 
 #[derive(Bundle)]
@@ -55,7 +52,7 @@ struct AsteroidBundle {
 const ASTEROID_SPAWNER_TRIGGER_INTERVAL: f32 = 2.0;
 const ASTEROID_ROTATION_SPEED: f32 = 1.25;
 const ASTEROID_SPEED: f32 = 2.0;
-const ASTEROID_HEALTH: i32 = 30;
+const ASTEROID_HEALTH: f32 = 7.0;
 const ASTEROID_COLLIDER_SIZE: (f32, f32) = (101.0, 84.0); // hardcoded size because we should have the boundaries of the collider and it should not be given by the sprite
 
 impl AsteroidBundle {
@@ -118,14 +115,21 @@ fn asteroids_movement_system(
 }
 
 fn take_damage(
-    enemy_query: Query<(&Collider, Entity), With<Asteroid>>,
-    shot_query: Query<(&Collider, Entity), With<Shot>>,
+    shot_query: Query<(&Damage, &Collider, Entity), With<Shot>>,
+    mut enemy_query: Query<(&mut Health, &Collider, Entity), With<Asteroid>>,
     mut commands: Commands,
 ) {
-    for (enemy_collider, enemy_entity) in &enemy_query {
-        for (shot_collider, shot_entity) in &shot_query {
+    for (mut enemy_health, enemy_collider, enemy_entity) in &mut enemy_query {
+        for (shot_damage, shot_collider, shot_entity) in &shot_query {
             if shot_collision(shot_collider.0, enemy_collider.0) {
-                commands.entity(enemy_entity).despawn();
+                let updated_enemy_health = enemy_health.0 - shot_damage.0;
+
+                if updated_enemy_health == 0.0 {
+                    commands.entity(enemy_entity).despawn();
+                } else {
+                    enemy_health.0 = updated_enemy_health;
+                }
+
                 commands.entity(shot_entity).despawn();
             }
         }
