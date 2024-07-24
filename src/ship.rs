@@ -1,8 +1,9 @@
-use bevy::math::bounding::{Aabb2d, IntersectsVolume};
-use bevy::math::vec3;
+use bevy::app::Plugin;
+use bevy::math::bounding::{Aabb2d, BoundingVolume, IntersectsVolume};
+use bevy::math::{vec2, vec3};
 use bevy::prelude::*;
-use bevy::{app::Plugin, math::bounding::BoundingVolume};
 
+use crate::prelude::Collider;
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_SIZE},
     prelude::{XSpeed, YSpeed},
@@ -94,6 +95,7 @@ fn ship_movement_system(
 const SHOT_SPEED: f32 = 10.0;
 const SHOOTING_INTERVAL: f32 = 0.5;
 const SHOT_SPAWN_OFFSET: f32 = 35.0;
+const SHOT_COLLIDER_SIZE: (f32, f32) = (9.0, 54.0);
 
 #[derive(Resource)]
 struct ShootingTimer(Timer);
@@ -106,6 +108,7 @@ struct ShotBundle {
     speed: YSpeed,
     sprite: SpriteBundle,
     shot: Shot,
+    collider: Collider,
 }
 
 impl ShotBundle {
@@ -115,6 +118,10 @@ impl ShotBundle {
         Self {
             shot: Shot,
             speed: YSpeed(SHOT_SPEED),
+            collider: Collider(Aabb2d::new(
+                vec2(x_offset, y_offset),
+                Vec2::from(SHOT_COLLIDER_SIZE) / 2.0,
+            )),
             sprite: SpriteBundle {
                 texture,
                 transform: Transform {
@@ -155,9 +162,12 @@ fn spawn_shot_system(
     }
 }
 
-fn shot_moving_system(mut query: Query<(&mut Transform, &YSpeed), With<Shot>>) {
-    for (mut transform, speed) in &mut query {
-        transform.translation.y += speed.0
+fn shot_moving_system(mut query: Query<(&mut Transform, &mut Collider, &YSpeed), With<Shot>>) {
+    for (mut transform, mut collider, speed) in &mut query {
+        // Move sprite
+        transform.translation.y += speed.0;
+        // Move collider
+        collider.0.translate_by(vec2(0.0, speed.0));
     }
 }
 

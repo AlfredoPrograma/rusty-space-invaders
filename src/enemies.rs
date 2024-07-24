@@ -56,7 +56,7 @@ const ASTEROID_SPAWNER_TRIGGER_INTERVAL: f32 = 2.0;
 const ASTEROID_ROTATION_SPEED: f32 = 1.25;
 const ASTEROID_SPEED: f32 = 2.0;
 const ASTEROID_HEALTH: i32 = 30;
-const ASTEROID_SIZE: (f32, f32) = (101.0, 84.0); // hardcoded size because we should have the boundaries of the collider and it should not be given by the sprite
+const ASTEROID_COLLIDER_SIZE: (f32, f32) = (101.0, 84.0); // hardcoded size because we should have the boundaries of the collider and it should not be given by the sprite
 
 impl AsteroidBundle {
     fn new(start_position: (f32, f32), texture: Handle<Image>) -> Self {
@@ -68,7 +68,7 @@ impl AsteroidBundle {
             speed: YSpeed(ASTEROID_SPEED),
             collider: Collider(Aabb2d::new(
                 vec2(x_start_position, y_start_position),
-                Vec2::from(ASTEROID_SIZE) / 2.0,
+                Vec2::from(ASTEROID_COLLIDER_SIZE) / 2.0,
             )),
             sprite: SpriteBundle {
                 texture,
@@ -118,29 +118,13 @@ fn asteroids_movement_system(
 }
 
 fn take_damage(
-    enemy_query: Query<(&Transform, &Collider, Entity), With<Asteroid>>,
-    shot_query: Query<(&Transform, &Handle<Image>, Entity), With<Shot>>,
-    image_assets: Res<Assets<Image>>,
+    enemy_query: Query<(&Collider, Entity), With<Asteroid>>,
+    shot_query: Query<(&Collider, Entity), With<Shot>>,
     mut commands: Commands,
 ) {
-    for (enemy_pos, enemy_collider, enemy_entity) in &enemy_query {
-        for (shot_pos, shot_texture, shot_entity) in &shot_query {
-            let shot_size = image_assets.get(shot_texture);
-
-            if shot_size.is_none() {
-                return;
-            }
-
-            // println!("Shot size: {:#?}", shot_size.unwrap().size_f32());
-
-            let shot_bounding_box = Aabb2d::new(
-                shot_pos.translation.truncate(),
-                shot_size.unwrap().size_f32() / 2.0,
-            );
-
-            let collision = shot_collision(shot_bounding_box, enemy_collider.0);
-
-            if collision {
+    for (enemy_collider, enemy_entity) in &enemy_query {
+        for (shot_collider, shot_entity) in &shot_query {
+            if shot_collision(shot_collider.0, enemy_collider.0) {
                 commands.entity(enemy_entity).despawn();
                 commands.entity(shot_entity).despawn();
             }
