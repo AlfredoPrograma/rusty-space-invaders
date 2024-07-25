@@ -1,5 +1,3 @@
-use std::borrow::BorrowMut;
-
 use bevy::{app::Plugin, math::vec3, prelude::*, window, DefaultPlugins};
 
 use crate::prelude::Score;
@@ -19,15 +17,7 @@ impl Plugin for DefaultConfigPlugins {
         let window_plugin = create_window_plugin();
 
         app.add_plugins(DefaultPlugins.set(window_plugin))
-            .add_systems(
-                Startup,
-                (
-                    create_camera_system,
-                    create_score_system,
-                    render_score_system,
-                )
-                    .chain(),
-            );
+            .add_systems(Startup, (create_camera_system, create_score_system).chain());
     }
 }
 
@@ -57,27 +47,37 @@ fn create_camera_system(mut commands: Commands) {
     commands.spawn(camera);
 }
 
-fn create_score_system(mut commands: Commands) {
-    commands.spawn(Score(0));
+#[derive(Bundle)]
+struct ScoreBundle {
+    text: Text2dBundle,
+    score: Score,
 }
 
-fn render_score_system(mut commands: Commands, query: Query<&Score, With<Score>>) {
-    let score = query.get_single().expect("only should exists one score");
-
-    let score_text = Text2dBundle {
-        text: Text {
-            sections: vec![TextSection {
-                value: format!("SCORE: {}", score.0),
+impl ScoreBundle {
+    fn new() -> Self {
+        let score_counter = Score(0);
+        let score_text = Text2dBundle {
+            text: Text {
+                sections: vec![TextSection {
+                    value: format!("SCORE: {}", score_counter.0),
+                    ..Default::default()
+                }],
                 ..Default::default()
-            }],
+            },
+            transform: Transform {
+                translation: vec3(WINDOW_X_LIMIT, WINDOW_Y_LIMIT - WINDOW_Y_PADDING, 0.0),
+                ..Default::default()
+            },
             ..Default::default()
-        },
-        transform: Transform {
-            translation: vec3(WINDOW_X_PADDING, WINDOW_Y_LIMIT - WINDOW_Y_PADDING, 0.0),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
+        };
 
-    commands.spawn(score_text);
+        ScoreBundle {
+            text: score_text,
+            score: score_counter,
+        }
+    }
+}
+
+fn create_score_system(mut commands: Commands) {
+    commands.spawn(ScoreBundle::new());
 }

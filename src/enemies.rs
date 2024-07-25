@@ -9,7 +9,7 @@ use rand::Rng;
 
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT},
-    prelude::{Collider, Damage, Health, YSpeed},
+    prelude::{Collider, Damage, Health, Score, YSpeed},
     ship::{shot_collision, Shot},
 };
 
@@ -116,6 +116,7 @@ fn asteroids_movement_system(
 
 fn take_damage(
     shot_query: Query<(&Damage, &Collider, Entity), With<Shot>>,
+    mut score_query: Query<(&mut Score, &mut Text), With<Score>>,
     mut enemy_query: Query<(&mut Health, &Collider, Entity), With<Asteroid>>,
     mut commands: Commands,
 ) {
@@ -125,7 +126,25 @@ fn take_damage(
                 let updated_enemy_health = enemy_health.0 - shot_damage.0;
 
                 if updated_enemy_health == 0.0 {
+                    let (mut score_counter, mut score_text) = score_query
+                        .get_single_mut()
+                        .expect("should exist only one score");
+
+                    // TODO:
+                    // Fix bug where two shots collides at same time with
+                    // asteroid and throw warn about invalid despawning and
+                    // duplicated counter update
                     commands.entity(enemy_entity).despawn();
+
+                    // TODO:
+                    // Extract to `update_counter` function
+                    // Check if text could be changed without create new section
+                    let updated_counter = score_counter.0 + 1;
+                    score_counter.0 = updated_counter;
+                    score_text.sections = vec![TextSection {
+                        value: format!("SCORE: {}", updated_counter),
+                        ..Default::default()
+                    }];
                 } else {
                     enemy_health.0 = updated_enemy_health;
                 }
