@@ -14,6 +14,3 @@ pub struct Collider(pub Aabb2d);
 
 #[derive(Component)]
 pub struct Damage(pub f32);
-
-#[derive(Component)]
-pub struct Score(pub u32);

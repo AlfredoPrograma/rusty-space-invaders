@@ -9,7 +9,8 @@ use rand::Rng;
 
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT},
-    prelude::{Collider, Damage, Health, Score, YSpeed},
+    prelude::{Collider, Damage, Health, YSpeed},
+    score::Score,
     ship::{shot_collision, Shot},
 };
 

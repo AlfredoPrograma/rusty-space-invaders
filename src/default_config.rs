@@ -1,7 +1,5 @@
 use bevy::{app::Plugin, math::vec3, prelude::*, window, DefaultPlugins};
 
-use crate::prelude::Score;
-
 pub const WINDOW_X_SIZE: f32 = 500.0;
 pub const WINDOW_Y_SIZE: f32 = 900.0;
 
@@ -17,7 +15,7 @@ impl Plugin for DefaultConfigPlugins {
         let window_plugin = create_window_plugin();
 
         app.add_plugins(DefaultPlugins.set(window_plugin))
-            .add_systems(Startup, (create_camera_system, create_score_system).chain());
+            .add_systems(Startup, (create_camera_system).chain());
     }
 }
 
@@ -45,39 +43,4 @@ fn create_camera_system(mut commands: Commands) {
     };
 
     commands.spawn(camera);
-}
-
-#[derive(Bundle)]
-struct ScoreBundle {
-    text: Text2dBundle,
-    score: Score,
-}
-
-impl ScoreBundle {
-    fn new() -> Self {
-        let score_counter = Score(0);
-        let score_text = Text2dBundle {
-            text: Text {
-                sections: vec![TextSection {
-                    value: format!("SCORE: {}", score_counter.0),
-                    ..Default::default()
-                }],
-                ..Default::default()
-            },
-            transform: Transform {
-                translation: vec3(WINDOW_X_LIMIT, WINDOW_Y_LIMIT - WINDOW_Y_PADDING, 0.0),
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        ScoreBundle {
-            text: score_text,
-            score: score_counter,
-        }
-    }
-}
-
-fn create_score_system(mut commands: Commands) {
-    commands.spawn(ScoreBundle::new());
 }
