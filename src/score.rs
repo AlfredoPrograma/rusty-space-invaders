@@ -1,7 +1,7 @@
 use bevy::{
-    app::{Plugin, Startup},
+    app::{Plugin, Startup, Update},
     math::vec3,
-    prelude::{Bundle, Commands, Component, Transform},
+    prelude::{Bundle, Commands, Component, Event, EventReader, Query, Transform, With},
     text::{Text, Text2dBundle, TextSection},
 };
 
@@ -11,12 +11,17 @@ pub struct ScorePlugin;
 
 impl Plugin for ScorePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Startup, create_score_system);
+        app.add_systems(Startup, create_score_system)
+            .add_event::<IncreaseScoreEvent>()
+            .add_systems(Update, increase_score_listener);
     }
 }
 
 #[derive(Component)]
 pub struct Score(pub u32);
+
+#[derive(Event)]
+pub struct IncreaseScoreEvent;
 
 #[derive(Bundle)]
 struct ScoreBundle {
@@ -51,4 +56,21 @@ impl ScoreBundle {
 
 fn create_score_system(mut commands: Commands) {
     commands.spawn(ScoreBundle::new());
+}
+
+fn increase_score_listener(
+    mut increase_score_event_rx: EventReader<IncreaseScoreEvent>,
+    mut score_query: Query<(&mut Score, &mut Text), With<Score>>,
+) {
+    for _ in increase_score_event_rx.read() {
+        if let Ok(score) = score_query.get_single_mut() {
+            let (mut score_counter, mut score_text) = score;
+
+            score_counter.0 += 1;
+            score_text.sections = vec![TextSection {
+                value: format!("SCORE: {}", score_counter.0),
+                ..Default::default()
+            }];
+        }
+    }
 }
