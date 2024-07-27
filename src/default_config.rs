@@ -1,4 +1,4 @@
-use bevy::{app::Plugin, math::vec3, prelude::*, window, DefaultPlugins};
+use bevy::{app::Plugin, prelude::*, window, DefaultPlugins};
 
 pub const WINDOW_X_SIZE: f32 = 500.0;
 pub const WINDOW_Y_SIZE: f32 = 900.0;

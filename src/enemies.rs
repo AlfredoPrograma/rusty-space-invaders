@@ -10,7 +10,7 @@ use rand::Rng;
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT},
     prelude::{Collider, Damage, Health, YSpeed},
-    score::{self, IncreaseScoreEvent, Score},
+    score::IncreaseScoreEvent,
     ship::{shot_collision, Shot},
 };
 
@@ -31,7 +31,8 @@ impl Plugin for EnemiesPlugin {
                 take_damage,
             )
                 .chain(),
-        );
+        )
+        .add_systems(PostUpdate, check_enemy_died);
     }
 }
 
@@ -117,28 +118,28 @@ fn asteroids_movement_system(
 
 fn take_damage(
     shot_query: Query<(&Damage, &Collider, Entity), With<Shot>>,
-    mut increase_score_event_tx: EventWriter<IncreaseScoreEvent>,
-    mut enemy_query: Query<(&mut Health, &Collider, Entity), With<Asteroid>>,
+    mut enemy_query: Query<(&mut Health, &Collider), With<Asteroid>>,
     mut commands: Commands,
 ) {
-    for (mut enemy_health, enemy_collider, enemy_entity) in &mut enemy_query {
+    for (mut enemy_health, enemy_collider) in &mut enemy_query {
         for (shot_damage, shot_collider, shot_entity) in &shot_query {
             if shot_collision(shot_collider.0, enemy_collider.0) {
-                let updated_enemy_health = enemy_health.0 - shot_damage.0;
-
-                if updated_enemy_health == 0.0 {
-                    // TODO:
-                    // Fix bug where two shots collides at same time with
-                    // asteroid and throw warn about invalid despawning and
-                    // duplicated counter update
-                    commands.entity(enemy_entity).despawn();
-                    increase_score_event_tx.send(IncreaseScoreEvent);
-                } else {
-                    enemy_health.0 = updated_enemy_health;
-                }
-
+                enemy_health.0 -= shot_damage.0;
                 commands.entity(shot_entity).despawn();
             }
+        }
+    }
+}
+
+fn check_enemy_died(
+    enemies_query: Query<(&Health, Entity), With<Asteroid>>,
+    mut increase_score_event_tx: EventWriter<IncreaseScoreEvent>,
+    mut commands: Commands,
+) {
+    for (enemy_health, enemy_entity) in &enemies_query {
+        if enemy_health.0 <= 0.0 {
+            commands.entity(enemy_entity).despawn();
+            increase_score_event_tx.send(IncreaseScoreEvent);
         }
     }
 }
