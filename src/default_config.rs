@@ -4,6 +4,9 @@ pub const WINDOW_X_SIZE: f32 = 500.0;
 pub const WINDOW_Y_SIZE: f32 = 900.0;
 
 const WINDOW_X_PADDING: f32 = 60.0;
+// TODO: Rename this variables and make them explicit
+// Why does `WINDOW_X_LIMIT` consider padding but `WINDOW_Y_LIMIT` not?
+// Improve this in order to keep consistency
 pub const WINDOW_X_LIMIT: f32 = (WINDOW_X_SIZE / 2.0) - WINDOW_X_PADDING;
 pub const WINDOW_Y_LIMIT: f32 = WINDOW_Y_SIZE / 2.0;
 pub const WINDOW_Y_PADDING: f32 = 30.0;
