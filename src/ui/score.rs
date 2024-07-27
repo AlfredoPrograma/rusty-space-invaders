@@ -40,7 +40,7 @@ impl ScoreBundle {
                 ..Default::default()
             },
             transform: Transform {
-                translation: vec3(WINDOW_X_LIMIT, WINDOW_Y_LIMIT - WINDOW_Y_PADDING, 0.0),
+                translation: vec3(-WINDOW_X_LIMIT, WINDOW_Y_LIMIT - WINDOW_Y_PADDING, 0.0),
                 ..Default::default()
             },
             ..Default::default()
