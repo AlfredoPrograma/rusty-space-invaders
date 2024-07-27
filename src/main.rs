@@ -1,13 +1,13 @@
 use default_config::DefaultConfigPlugins;
 use enemy::EnemiesPlugin;
-use score::ScorePlugin;
-use ship::ShipPlugin;
+use player::ship::ShipPlugin;
+use ui::score::ScorePlugin;
 
 mod default_config;
 mod enemy;
+mod player;
 mod prelude;
-mod score;
-mod ship;
+mod ui;
 
 fn main() {
     bevy::app::App::new()

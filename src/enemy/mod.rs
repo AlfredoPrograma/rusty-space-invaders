@@ -10,8 +10,8 @@ use bevy::{
 };
 
 use crate::{
+    player::ship::Shot,
     prelude::{Collider, Damage, Health},
-    ship::Shot,
 };
 
 pub mod asteroid;
