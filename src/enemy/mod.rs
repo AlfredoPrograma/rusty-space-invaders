@@ -4,13 +4,14 @@ use asteroid::{
 };
 use bevy::{
     app::{App, Plugin, PostUpdate, Update},
+    math::bounding::IntersectsVolume,
     prelude::{Commands, Component, Entity, Event, EventWriter, IntoSystemConfigs, Query, With},
     time::{Timer, TimerMode},
 };
 
 use crate::{
     prelude::{Collider, Damage, Health},
-    ship::{shot_collision, Shot},
+    ship::Shot,
 };
 
 pub mod asteroid;
@@ -67,7 +68,7 @@ pub fn enemy_take_damage_system(
 ) {
     for (mut enemy_health, enemy_collider) in &mut enemy_query {
         for (shot_damage, shot_collider, shot_entity) in &shot_query {
-            if shot_collision(shot_collider.0, enemy_collider.0) {
+            if shot_collider.0.intersects(&enemy_collider.0) {
                 enemy_health.0 -= shot_damage.0;
 
                 // Instantly despawns shot which has been collided

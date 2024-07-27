@@ -1,5 +1,5 @@
 use bevy::app::Plugin;
-use bevy::math::bounding::{Aabb2d, BoundingVolume, IntersectsVolume};
+use bevy::math::bounding::{Aabb2d, BoundingVolume};
 use bevy::math::{vec2, vec3};
 use bevy::prelude::*;
 
@@ -57,12 +57,14 @@ impl ShipBundle {
     }
 }
 
+/// Spawns the player ship in the screen.
 fn spawn_ship_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     let ship_handle: Handle<Image> = asset_server.load("player_ship.png");
 
     commands.spawn(ShipBundle::new(ship_handle));
 }
 
+/// Handles the user input to move the ship horizontally in the screen
 fn ship_movement_system(
     mut query: Query<(&mut Transform, &XSpeed), With<Ship>>,
     key: Res<ButtonInput<KeyCode>>,
@@ -86,7 +88,7 @@ fn ship_movement_system(
                 }
             }
 
-            // Do nothing xd
+            // Do nothing for other key presses
             _ => {}
         }
     }
@@ -137,6 +139,7 @@ impl ShotBundle {
     }
 }
 
+/// Spawns player shots on the screen every fixed amount of time
 fn spawn_shot_system(
     mut shooting_timer: ResMut<ShootingTimer>,
     mut commands: Commands,
@@ -165,6 +168,7 @@ fn spawn_shot_system(
     }
 }
 
+/// Handles the shots movement vertically
 fn shot_moving_system(mut query: Query<(&mut Transform, &mut Collider, &YSpeed), With<Shot>>) {
     for (mut transform, mut collider, speed) in &mut query {
         // Move sprite
@@ -172,9 +176,4 @@ fn shot_moving_system(mut query: Query<(&mut Transform, &mut Collider, &YSpeed),
         // Move collider
         collider.0.translate_by(vec2(0.0, speed.0));
     }
-}
-
-pub fn shot_collision(shot: Aabb2d, bounding_box: Aabb2d) -> bool {
-    // TODO: maybe add some extra logic like particles or sound on collision later
-    shot.intersects(&bounding_box)
 }
