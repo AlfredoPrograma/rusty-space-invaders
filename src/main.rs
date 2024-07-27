@@ -1,10 +1,10 @@
 use default_config::DefaultConfigPlugins;
-use enemies::EnemiesPlugin;
+use enemy::EnemiesPlugin;
 use score::ScorePlugin;
 use ship::ShipPlugin;
 
 mod default_config;
-mod enemies;
+mod enemy;
 mod prelude;
 mod score;
 mod ship;

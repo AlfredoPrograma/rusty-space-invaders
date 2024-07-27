@@ -9,38 +9,18 @@ use rand::Rng;
 
 use crate::{
     default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT},
-    prelude::{Collider, Damage, Health, YSpeed},
-    score::IncreaseScoreEvent,
-    ship::{shot_collision, Shot},
+    prelude::{Collider, Health, YSpeed},
 };
 
-const SPAWN_Y_OFFSET: f32 = 45.0;
-pub struct EnemiesPlugin;
+use super::{Enemy, EnemyKind};
 
-impl Plugin for EnemiesPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(AsteroidSpawnTimer(Timer::from_seconds(
-            ASTEROID_SPAWNER_TRIGGER_INTERVAL,
-            TimerMode::Repeating,
-        )))
-        .add_systems(
-            Update,
-            (
-                spawn_asteroids_system,
-                asteroids_movement_system,
-                take_damage,
-            )
-                .chain(),
-        )
-        .add_systems(PostUpdate, check_enemy_died);
-    }
-}
+const SPAWN_Y_OFFSET: f32 = 45.0;
 
 #[derive(Resource)]
-struct AsteroidSpawnTimer(Timer);
+pub struct AsteroidSpawnTimer(pub Timer);
 
 #[derive(Component)]
-struct Asteroid;
+pub struct Asteroid;
 
 #[derive(Bundle)]
 struct AsteroidBundle {
@@ -49,13 +29,15 @@ struct AsteroidBundle {
     health: Health,
     asteroid: Asteroid,
     collider: Collider,
+    enemy: Enemy,
 }
 
-const ASTEROID_SPAWNER_TRIGGER_INTERVAL: f32 = 2.0;
-const ASTEROID_ROTATION_SPEED: f32 = 1.25;
-const ASTEROID_SPEED: f32 = 2.0;
-const ASTEROID_HEALTH: f32 = 7.0;
-const ASTEROID_COLLIDER_SIZE: (f32, f32) = (101.0, 84.0); // hardcoded size because we should have the boundaries of the collider and it should not be given by the sprite
+pub const ASTEROID_SCORE: u32 = 1;
+pub const ASTEROID_SPAWNER_TRIGGER_INTERVAL: f32 = 2.0;
+pub const ASTEROID_ROTATION_SPEED: f32 = 1.25;
+pub const ASTEROID_SPEED: f32 = 2.0;
+pub const ASTEROID_HEALTH: f32 = 5.0;
+pub const ASTEROID_COLLIDER_SIZE: (f32, f32) = (101.0, 84.0); // hardcoded size because we should have the boundaries of the collider and it should not be given by the sprite
 
 impl AsteroidBundle {
     fn new(start_position: (f32, f32), texture: Handle<Image>) -> Self {
@@ -63,6 +45,7 @@ impl AsteroidBundle {
 
         Self {
             asteroid: Asteroid,
+            enemy: Enemy(EnemyKind::Asteroid),
             health: Health(ASTEROID_HEALTH),
             speed: YSpeed(ASTEROID_SPEED),
             collider: Collider(Aabb2d::new(
@@ -81,7 +64,7 @@ impl AsteroidBundle {
     }
 }
 
-fn spawn_asteroids_system(
+pub fn spawn_asteroids_system(
     time: Res<Time>,
     asset_server: Res<AssetServer>,
     mut commands: Commands,
@@ -102,7 +85,7 @@ fn spawn_asteroids_system(
     }
 }
 
-fn asteroids_movement_system(
+pub fn asteroids_movement_system(
     time: Res<Time>,
     mut query: Query<(&mut Transform, &mut Collider, &YSpeed), With<Asteroid>>,
 ) {
@@ -113,33 +96,5 @@ fn asteroids_movement_system(
 
         // Move collider
         collider.0.translate_by(vec2(0.0, -speed.0))
-    }
-}
-
-fn take_damage(
-    shot_query: Query<(&Damage, &Collider, Entity), With<Shot>>,
-    mut enemy_query: Query<(&mut Health, &Collider), With<Asteroid>>,
-    mut commands: Commands,
-) {
-    for (mut enemy_health, enemy_collider) in &mut enemy_query {
-        for (shot_damage, shot_collider, shot_entity) in &shot_query {
-            if shot_collision(shot_collider.0, enemy_collider.0) {
-                enemy_health.0 -= shot_damage.0;
-                commands.entity(shot_entity).despawn();
-            }
-        }
-    }
-}
-
-fn check_enemy_died(
-    enemies_query: Query<(&Health, Entity), With<Asteroid>>,
-    mut increase_score_event_tx: EventWriter<IncreaseScoreEvent>,
-    mut commands: Commands,
-) {
-    for (enemy_health, enemy_entity) in &enemies_query {
-        if enemy_health.0 <= 0.0 {
-            commands.entity(enemy_entity).despawn();
-            increase_score_event_tx.send(IncreaseScoreEvent);
-        }
     }
 }
