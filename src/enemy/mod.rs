@@ -10,7 +10,7 @@ use bevy::{
 };
 
 use crate::{
-    player::ship::Shot,
+    player::shot::Shot,
     prelude::{Collider, Damage, Health},
 };
 
