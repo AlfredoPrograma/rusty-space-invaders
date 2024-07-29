@@ -1,12 +1,17 @@
 use bevy::{
-    app::{Plugin, Startup},
+    app::{Plugin, PostUpdate, Startup},
     asset::{AssetServer, Handle},
     math::vec3,
-    prelude::{Bundle, Commands, Component, Image, Res, Transform},
+    prelude::{
+        Bundle, Commands, Component, Entity, EventReader, Image, Query, Res, Transform, With,
+    },
     sprite::SpriteBundle,
 };
 
-use crate::default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT, WINDOW_Y_PADDING};
+use crate::{
+    default_config::{WINDOW_X_LIMIT, WINDOW_Y_LIMIT, WINDOW_Y_PADDING},
+    player::ship::ShipTakeDamageEvent,
+};
 
 // TODO: check how hell are hearts rendering?
 // I've done some calculations and added some gap and positioning but really
@@ -18,25 +23,26 @@ pub struct HeartsPlugin;
 
 impl Plugin for HeartsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Startup, create_lives_system);
+        app.add_systems(Startup, create_lives_system)
+            .add_systems(PostUpdate, decrease_life_system);
     }
 }
 
-/// Provides the `Heart` attribute.
+/// Provides the `Heart` attribute
 ///
-/// It represents the user's health.
+/// It represents the user's health
 #[derive(Component)]
-struct Heart(pub i8);
+struct Heart;
 
 /// Represents the heart element of the players hearts counter
 #[derive(Bundle)]
 struct HeartBundle {
     sprite: SpriteBundle,
-    hearth: Heart,
+    heart: Heart,
 }
 
 impl HeartBundle {
-    fn new(heart_value: i8, x_position: f32, texture: Handle<Image>) -> Self {
+    fn new(x_position: f32, texture: Handle<Image>) -> Self {
         HeartBundle {
             sprite: SpriteBundle {
                 texture,
@@ -50,7 +56,7 @@ impl HeartBundle {
                 },
                 ..Default::default()
             },
-            hearth: Heart(heart_value),
+            heart: Heart,
         }
     }
 }
@@ -63,9 +69,28 @@ fn create_lives_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         let heart_texture: Handle<Image> = asset_server.load("player_heart.png");
 
         commands.spawn(HeartBundle::new(
-            value + 1,
             HEARTS_GAP * f32::from(value),
             heart_texture,
         ));
+    }
+}
+
+/// Reduces player's lives by one
+fn decrease_life_system(
+    lives_query: Query<Entity, With<Heart>>,
+    mut ship_take_damage_event_rx: EventReader<ShipTakeDamageEvent>,
+    mut commands: Commands,
+) {
+    for event in ship_take_damage_event_rx.read() {
+        // Despawn the collided enemy
+        commands.entity(event.0).despawn();
+
+        // Skip one heart bundle because we want make player lose on 3 collisions
+        if let Some(heart_entity) = lives_query.iter().skip(1).next() {
+            // Despawn heart
+            commands.entity(heart_entity).despawn();
+        } else {
+            panic!("Implement losing game state")
+        }
     }
 }
